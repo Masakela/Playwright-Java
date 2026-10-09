@@ -4,8 +4,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PORT="${PORT:-8080}"
+PORT="${PORT:-8787}"
 export AGENT_BASE_URL="http://localhost:${PORT}"
+
+# Corporate-proxy guard: make the local agent bypass any HTTP(S)_PROXY (which
+# otherwise intercepts localhost and answers 403). Merge, don't clobber.
+LOCALS="localhost,127.0.0.1,::1"
+export NO_PROXY="${NO_PROXY:+$NO_PROXY,}$LOCALS"
+export no_proxy="$NO_PROXY"
 
 echo "Starting reference agent on ${AGENT_BASE_URL} ..."
 PORT="$PORT" node agent-server/server.js &

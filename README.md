@@ -91,6 +91,27 @@ mvn test -Dsurefire.suiteXmlFiles=testng-live.xml -Dagent.base.url=http://localh
 Prerequisites: Node 18+ (for the agent), JDK 17+ & Maven, and (first run) Playwright
 browsers. Open `http://localhost:8080/agent` to drive the agent by hand.
 
+### Default port is 8787 (not 8080)
+
+The reference agent defaults to **http://localhost:8787** because Jenkins and
+Tomcat both grab **8080** on most dev machines - a busy 8080 means the agent
+can't bind and the live tests hit the other service (a confusing **HTTP 403**).
+Override with `PORT`/`$env:PORT` if 8787 is taken, or if you run the agent by
+hand: `PORT=8787 node agent-server/server.js`.
+
+### Behind a corporate proxy?
+
+On managed machines an `HTTP_PROXY`/`HTTPS_PROXY` is often set, and Playwright's
+request context will route the **localhost** agent call through it - the proxy then
+answers **HTTP 403** and every live test fails. The project guards against this:
+`BaseTest` passes `NO_PROXY` for `localhost`/`127.0.0.1`/`::1` into the Playwright
+driver whenever the agent URL is local, and the `run-e2e` scripts do the same. If
+you invoke Maven some other way and still see a 403, set it yourself first:
+
+```bash
+export NO_PROXY=localhost,127.0.0.1,::1   # PowerShell: $env:NO_PROXY="localhost,127.0.0.1,::1"
+```
+
 ## Java - run
 
 ```bash

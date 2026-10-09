@@ -7,6 +7,10 @@ import com.microsoft.playwright.Page;
 
 /**
  * InventoryPage — the product list after a successful login (Playwright / Java).
+ *
+ * SauceDemo uses CSS ids/classes for the grid and the data-test attribute for the
+ * add-to-cart buttons, so those are targeted with [data-test='...'] directly (not
+ * getByTestId, which defaults to data-testid).
  */
 public class InventoryPage extends BasePage {
 
@@ -16,9 +20,9 @@ public class InventoryPage extends BasePage {
 
     public InventoryPage(Page page) {
         super(page);
-        this.inventoryContainer = page.locator("#inventory_container");
-        this.itemNames = page.locator(".inventory_item_name");
-        this.cartBadge = page.locator(".shopping_cart_badge");
+        this.inventoryContainer = page.locator("[data-test='inventory-container']");
+        this.itemNames = page.locator("[data-test='inventory-item-name']");
+        this.cartBadge = page.locator("[data-test='shopping-cart-badge']");
     }
 
     /** True once the product grid is visible — confirms login landed here. */
@@ -35,12 +39,12 @@ public class InventoryPage extends BasePage {
     }
 
     /**
-     * Add a product by display name. The button test id is derived from the name,
+     * Add a product by display name. The button's data-test is derived from the name,
      * e.g. 'Sauce Labs Backpack' -> 'add-to-cart-sauce-labs-backpack'.
      */
     public InventoryPage addItemToCart(String productName) {
         String slug = productName.toLowerCase().replace(" ", "-");
-        page.getByTestId("add-to-cart-" + slug).click();
+        page.locator("[data-test='add-to-cart-" + slug + "']").click();
         return this;
     }
 

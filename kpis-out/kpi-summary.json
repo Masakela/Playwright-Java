@@ -1,0 +1,77 @@
+{
+  "meta": {
+    "commit": "local",
+    "branch": "local",
+    "runUrl": "",
+    "date": "2026-10-09T18:02:42.927Z"
+  },
+  "overall": {
+    "total": 54,
+    "passed": 54,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "durationMs": 60217,
+    "executed": 54,
+    "passRate": 100
+  },
+  "bySuite": [
+    {
+      "suite": "Agent Workflows (Java)",
+      "total": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "durationMs": 4201,
+      "executed": 30,
+      "passRate": 100
+    },
+    {
+      "suite": "UI Regression (Java)",
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "durationMs": 56016,
+      "executed": 24,
+      "passRate": 100
+    }
+  ],
+  "agentQualityGates": [
+    {
+      "label": "Eval harness (task-success)",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6,
+      "passRate": 100
+    },
+    {
+      "label": "Guardrails (refusals)",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "total": 7,
+      "passRate": 100
+    },
+    {
+      "label": "Non-determinism (invariants)",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "total": 2,
+      "passRate": 100
+    },
+    {
+      "label": "Data validation",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1,
+      "passRate": 100
+    }
+  ],
+  "generatedAt": "2026-10-09T18:02:42.935Z"
+}

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" data-palette="#2a78d6,#eb6834,#1baf7a">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA Automation KPIs</title>
+<style>
+  :root {
+    --surface:#fcfcfb; --card:#ffffff; --ink:#0b0b0b; --muted:#52514e; --border:#e6e4df;
+    --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --serious:#ec835a;
+    --series1:#2a78d6; --track:#e6e4df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface:#1a1a19; --card:#232321; --ink:#ffffff; --muted:#c3c2b7; --border:#34332f;
+      --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --series1:#3987e5; --track:#34332f;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; line-height:1.5; }
+  .wrap { max-width:960px; margin:0 auto; padding:24px 16px 56px; }
+  header h1 { font-size:1.5rem; margin:0 0 4px; }
+  .meta { color:var(--muted); font-size:.85rem; }
+  .row { display:flex; flex-wrap:wrap; gap:16px; margin:20px 0; align-items:stretch; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; flex:1; }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .tile-val { font-size:1.7rem; font-weight:700; }
+  .tile-label { color:var(--muted); font-size:.8rem; margin-top:2px; }
+  .tile-sub { color:var(--muted); font-size:.72rem; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .donutcard { display:flex; align-items:center; gap:16px; min-width:260px; }
+  h2 { font-size:1.05rem; margin:28px 0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.02em; }
+  td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .legend { display:flex; gap:14px; font-size:.8rem; color:var(--muted); margin-top:10px; flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .dot { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .gates { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+  .gate { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .gate-label { font-size:.82rem; color:var(--muted); }
+  .gate-badge { font-size:1.1rem; font-weight:700; margin:4px 0 2px; }
+  .gate-sub { font-size:.75rem; color:var(--muted); }
+  a { color:var(--series1); }
+  footer { margin-top:32px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>QA Automation &mdash; Test KPIs</h1>
+    <div class="meta">Branch <strong>local</strong> &middot; commit <code>local</code>
+      &middot; Fri, 09 Oct 2026 18:02:42 GMT</div>
+  </header>
+
+  <div class="row">
+    <div class="card donutcard">
+      <svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Pass rate 100%">
+    <circle cx="70" cy="70" r="54" fill="none" stroke="var(--track)" stroke-width="14"></circle>
+    <circle cx="70" cy="70" r="54" fill="none" stroke="var(--good)" stroke-width="14" stroke-linecap="round"
+      stroke-dasharray="339.29200658769764 0" transform="rotate(-90 70 70)"></circle>
+    <text x="70" y="66" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)">100%</text>
+    <text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--muted)">pass rate</text>
+  </svg>
+      <div>
+        <div style="font-size:.8rem;color:var(--muted)">Overall quality</div>
+        <div style="font-size:1.1rem;font-weight:700">54/54 executed passed</div>
+        <div style="font-size:.8rem;color:var(--muted)">0 skipped</div>
+        
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="tile-val" >54</div>
+    <div class="tile-label">Total tests</div><div class="tile-sub">54 executed</div></div>
+      <div class="tile"><div class="tile-val" style="color:var(--good)">54</div>
+    <div class="tile-label">Passed</div></div>
+      <div class="tile"><div class="tile-val" style="color:var(--muted)">0</div>
+    <div class="tile-label">Failed</div></div>
+      <div class="tile"><div class="tile-val" style="color:var(--warn)">0</div>
+    <div class="tile-label">Skipped</div></div>
+      <div class="tile"><div class="tile-val" style="color:var(--muted)">0</div>
+    <div class="tile-label">Flaky</div></div>
+      <div class="tile"><div class="tile-val" >60.2s</div>
+    <div class="tile-label">Duration</div><div class="tile-sub">total</div></div>
+    </div>
+  </div>
+
+  <h2>Results by suite</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Suite</th><th class="num">Tests</th><th>Breakdown</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Skip</th><th class="num">Rate</th></tr></thead>
+      <tbody><tr>
+  <td>Agent Workflows (Java)</td>
+  <td class="num">30</td>
+  <td><svg width="460" height="14" role="img" aria-label="Agent Workflows (Java) results"><g transform="translate(0,0)"><rect height="14" rx="3" ry="3" width="458" fill="var(--good)"></rect></g></svg></td>
+  <td class="num" style="color:var(--good)">30</td>
+  <td class="num" style="color:var(--crit)">0</td>
+  <td class="num" style="color:var(--warn)">0</td>
+  <td class="num"><strong>100%</strong></td>
+</tr><tr>
+  <td>UI Regression (Java)</td>
+  <td class="num">24</td>
+  <td><svg width="460" height="14" role="img" aria-label="UI Regression (Java) results"><g transform="translate(0,0)"><rect height="14" rx="3" ry="3" width="458" fill="var(--good)"></rect></g></svg></td>
+  <td class="num" style="color:var(--good)">24</td>
+  <td class="num" style="color:var(--crit)">0</td>
+  <td class="num" style="color:var(--warn)">0</td>
+  <td class="num"><strong>100%</strong></td>
+</tr></tbody>
+    </table>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--good)"></span>Passed</span>
+      <span><span class="dot" style="background:var(--crit)"></span>Failed</span>
+      <span><span class="dot" style="background:var(--warn)"></span>Skipped</span>
+    </div>
+  </div>
+
+  <h2>Agent quality gates <span style="font-weight:400;color:var(--muted);font-size:.85rem">(AI-as-system-under-test)</span></h2>
+  <div class="gates"><div class="gate"><div class="gate-label">Eval harness (task-success)</div>
+    <div class="gate-badge" style="color:var(--good)">✓ pass</div>
+    <div class="gate-sub">6 / 6 passed</div></div><div class="gate"><div class="gate-label">Guardrails (refusals)</div>
+    <div class="gate-badge" style="color:var(--good)">✓ pass</div>
+    <div class="gate-sub">7 / 7 passed</div></div><div class="gate"><div class="gate-label">Non-determinism (invariants)</div>
+    <div class="gate-badge" style="color:var(--good)">✓ pass</div>
+    <div class="gate-sub">2 / 2 passed</div></div><div class="gate"><div class="gate-label">Data validation</div>
+    <div class="gate-badge" style="color:var(--good)">✓ pass</div>
+    <div class="gate-sub">1 / 1 passed</div></div></div>
+
+  <footer>
+    Generated by <code>scripts/kpi-report.js</code>. Full <a href="allure/index.html">Allure report</a> &middot;
+    <a href="playwright-report/index.html">Playwright HTML report</a>.
+    <br/>Raw data: <a href="kpi-summary.json">kpi-summary.json</a>.
+  </footer>
+</div>
+<script type="application/json" id="kpi-data">{"meta":{"commit":"local","branch":"local","runUrl":"","date":"2026-10-09T18:02:42.927Z"},"overall":{"total":54,"passed":54,"failed":0,"skipped":0,"flaky":0,"durationMs":60217,"executed":54,"passRate":100},"bySuite":[{"suite":"Agent Workflows (Java)","total":30,"passed":30,"failed":0,"skipped":0,"flaky":0,"durationMs":4201,"executed":30,"passRate":100},{"suite":"UI Regression (Java)","total":24,"passed":24,"failed":0,"skipped":0,"flaky":0,"durationMs":56016,"executed":24,"passRate":100}],"agentQualityGates":[{"label":"Eval harness (task-success)","passed":6,"failed":0,"skipped":0,"total":6,"passRate":100},{"label":"Guardrails (refusals)","passed":7,"failed":0,"skipped":0,"total":7,"passRate":100},{"label":"Non-determinism (invariants)","passed":2,"failed":0,"skipped":0,"total":2,"passRate":100},{"label":"Data validation","passed":1,"failed":0,"skipped":0,"total":1,"passRate":100}],"generatedAt":"2026-10-09T18:02:42.935Z"}</script>
+</body>
+</html>

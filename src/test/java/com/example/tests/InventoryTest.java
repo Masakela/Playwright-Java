@@ -12,32 +12,39 @@ import com.example.pages.InventoryPage;
 import com.example.pages.LoginPage;
 
 /**
- * Inventory tests (Playwright / TestNG). Each test starts logged in — a local
- * @BeforeMethod logs in and stores the InventoryPage. It runs AFTER BaseTest's
- * @BeforeMethod (which creates the context + page); TestNG runs superclass
- * @BeforeMethods before subclass ones.
+ * Inventory tests (Playwright / TestNG). Each test starts logged in — a @BeforeMethod
+ * logs in on THIS thread's page. It runs AFTER BaseTest's @BeforeMethod (which creates
+ * the context + page); TestNG runs superclass @BeforeMethods before subclass ones.
+ *
+ * THREAD-SAFETY: with parallel="methods" TestNG reuses ONE test-class instance across
+ * threads, so an instance field (e.g. a shared InventoryPage) would be stomped by
+ * concurrent methods. Instead each test rebuilds the page object from getPage(), which
+ * is ThreadLocal in BaseTest — so every method uses its own thread's page.
  */
 public class InventoryTest extends BaseTest {
 
-    private InventoryPage inventory;
+    private InventoryPage inventory() {
+        return new InventoryPage(getPage());
+    }
 
     @BeforeMethod
     public void login() {
-        inventory = new LoginPage(getPage()).open().loginAs("standard_user", "secret_sauce");
+        new LoginPage(getPage()).open().loginAs("standard_user", "secret_sauce");
     }
 
     @Test
     public void inventoryPageLoads() {
-        assertTrue(inventory.isLoaded(), "Inventory container should be visible after login");
+        assertTrue(inventory().isLoaded(), "Inventory container should be visible after login");
     }
 
     @Test
     public void showsAllProducts() {
-        assertEquals(inventory.getItemCount(), 6, "SauceDemo lists six demo products");
+        assertEquals(inventory().getItemCount(), 6, "SauceDemo lists six demo products");
     }
 
     @Test
     public void addingItemUpdatesCartBadge() {
+        InventoryPage inventory = inventory();
         assertEquals(inventory.getCartCount(), 0, "Cart should start empty");
         inventory.addItemToCart("Sauce Labs Backpack");
         assertEquals(inventory.getCartCount(), 1, "Cart badge should read 1 after adding one item");
@@ -45,6 +52,7 @@ public class InventoryTest extends BaseTest {
 
     @Test
     public void addingTwoItemsShowsCountTwo() {
+        InventoryPage inventory = inventory();
         inventory.addItemToCart("Sauce Labs Backpack");
         inventory.addItemToCart("Sauce Labs Bike Light");
         assertEquals(inventory.getCartCount(), 2, "Cart badge should reflect both items");
@@ -52,6 +60,7 @@ public class InventoryTest extends BaseTest {
 
     @Test
     public void productNamesPresent() {
+        InventoryPage inventory = inventory();
         assertFalse(inventory.getItemNames().isEmpty(), "There should be product names");
         assertTrue(inventory.getItemNames().stream().allMatch(n -> !n.isBlank()),
                 "No product name should be blank");

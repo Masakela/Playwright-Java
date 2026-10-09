@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 
 import com.example.base.BaseTest;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.RouteFulfillOptions;
+import com.microsoft.playwright.Route;
 
 /**
  * Network-control pattern (cheatsheet #9 / SDET doc mocking rule): mock the agent
@@ -30,11 +30,12 @@ public class AgentMockingTest extends BaseTest {
               + "\"actions\":[{\"tool\":\"create_user\",\"args\":{},\"status\":\"ok\"}],"
               + "\"data\":{\"userId\":\"u-100\",\"email\":\"john@example.com\"}}";
 
-        // Serve the console document and mock the agent endpoint.
+        // Serve the console document and mock the agent endpoint. FulfillOptions is a
+        // nested class of Route (com.microsoft.playwright.Route.FulfillOptions).
         page.route("**/agent", route -> route.fulfill(
-                new RouteFulfillOptions().setContentType("text/html").setBody(html)));
+                new Route.FulfillOptions().setContentType("text/html").setBody(html)));
         page.route("**/api/agent/run", route -> route.fulfill(
-                new RouteFulfillOptions().setStatus(200).setContentType("application/json").setBody(agentJson)));
+                new Route.FulfillOptions().setStatus(200).setContentType("application/json").setBody(agentJson)));
 
         page.navigate("https://agent.local/agent");
         page.getByTestId("agent-goal-input").fill("create a user for John");

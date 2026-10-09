@@ -1,40 +1,50 @@
 package com.example.agent;
 
 import org.testng.SkipException;
-import org.testng.annotations.AfterSuite;
+import org.testng.annotations.AfterMethod;
 
 import com.example.base.BaseTest;
 import com.example.utils.Config;
 import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.Playwright;
 
 /**
  * AgentBaseTest - base for LIVE agent tests (AI as the system under test).
- * Adds a lazily-created APIRequestContext for hitting the agent API, and skips
- * when no endpoint is configured so `mvn test` stays green out of the box.
+ * Adds a per-thread APIRequestContext for hitting the agent API, and skips when no
+ * endpoint is configured so `mvn test` stays green out of the box.
+ *
+ * The API context is built from THIS thread's Playwright (BaseTest creates one per
+ * test method), so it is safe under parallel="methods" and is disposed per method.
  *
  * The self-contained logic tests (EvaluatorTest / DataQualityTest / GuardrailTest)
- * and the mocked-network test (AgentMockingTest) do NOT extend this - they always run.
+ * and the mocked-network test (AgentMockingTest) do NOT extend this.
  */
 public abstract class AgentBaseTest extends BaseTest {
 
-    protected static APIRequestContext api;
+    private static final ThreadLocal<APIRequestContext> API = new ThreadLocal<>();
 
-    /** Lazily build the API context from the shared Playwright instance (set by BaseTest). */
+    /** Lazily build this thread's API context from the thread's Playwright instance. */
     protected APIRequestContext apiContext() {
-        if (api == null) {
-            if (playwright == null) {
+        APIRequestContext ctx = API.get();
+        if (ctx == null) {
+            Playwright pw = playwright();
+            if (pw == null) {
                 throw new IllegalStateException("Playwright not initialized by BaseTest");
             }
-            api = playwright.request().newContext();
+            ctx = pw.request().newContext();
+            API.set(ctx);
         }
-        return api;
+        return ctx;
     }
 
-    @AfterSuite(alwaysRun = true)
+    // Runs before BaseTest.tearDown (TestNG runs subclass @AfterMethod first), so the
+    // API context is disposed while its owning Playwright is still open.
+    @AfterMethod(alwaysRun = true)
     public void disposeApiContext() {
-        if (api != null) {
-            api.dispose();
-            api = null;
+        APIRequestContext ctx = API.get();
+        if (ctx != null) {
+            try { ctx.dispose(); } catch (Exception ignored) { }
+            API.remove();
         }
     }
 

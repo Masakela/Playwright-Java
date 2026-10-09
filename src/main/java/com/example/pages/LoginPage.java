@@ -6,10 +6,11 @@ import com.microsoft.playwright.Page;
 /**
  * LoginPage — SauceDemo login page (Playwright / Java).
  *
- * Locators are declared as Playwright Locators (lazy — they re-resolve on each
- * use, so no stale-element issues). SauceDemo tags its fields with data-test
- * attributes, so getByTestId is the natural, stable choice — the direct analog
- * of the Selenium data-* hooks.
+ * SauceDemo tags its fields with the **data-test** attribute (not data-testid), so
+ * these locators target [data-test='...'] explicitly. (Playwright's getByTestId()
+ * defaults to data-testid, which the agent console uses - keeping the two layers on
+ * their own attributes avoids a global testIdAttribute switch.) Locators are lazy -
+ * they re-resolve on each use, so there are no stale-element issues.
  */
 public class LoginPage extends BasePage {
 
@@ -22,10 +23,10 @@ public class LoginPage extends BasePage {
 
     public LoginPage(Page page) {
         super(page);
-        this.username = page.getByTestId("username");
-        this.password = page.getByTestId("password");
-        this.loginButton = page.getByTestId("login-button");
-        this.errorMessage = page.getByTestId("error");
+        this.username = page.locator("[data-test='username']");
+        this.password = page.locator("[data-test='password']");
+        this.loginButton = page.locator("[data-test='login-button']");
+        this.errorMessage = page.locator("[data-test='error']");
     }
 
     public LoginPage open() {
