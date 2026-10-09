@@ -1,0 +1,10 @@
+{
+  "name": "reference-agent-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-dependency reference AI-agent service (the system under test).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

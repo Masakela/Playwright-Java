@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Agent Console (mock)</title></head>
+  <body>
+    <h1>Agent Console</h1>
+    <input data-testid="agent-goal-input" placeholder="Describe a goal..." />
+    <button data-testid="agent-submit">Run</button>
+    <div data-testid="agent-status"></div>
+    <pre data-testid="agent-response"></pre>
+    <script>
+      document.querySelector('[data-testid=agent-submit]').addEventListener('click', async () => {
+        const goal = document.querySelector('[data-testid=agent-goal-input]').value;
+        const res = await fetch('/api/agent/run', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ goal })
+        });
+        const j = await res.json();
+        document.querySelector('[data-testid=agent-status]').textContent =
+          j.success ? 'success' : (j.refused ? 'refused' : 'error');
+        document.querySelector('[data-testid=agent-response]').textContent = j.message;
+      });
+    </script>
+  </body>
+</html>

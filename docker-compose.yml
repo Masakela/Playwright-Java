@@ -1,0 +1,16 @@
+# Brings up the reference agent (the system under test) on http://localhost:8080.
+#   docker compose up            # start in the foreground
+#   docker compose up -d         # start in the background, then run the test suites
+services:
+  agent:
+    build: ./agent-server
+    image: reference-agent
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

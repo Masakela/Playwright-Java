@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  parallel="methods" + thread-count runs tests concurrently. Each test gets its own
+  BrowserContext/Page (see BaseTest), so parallel runs stay isolated.
+-->
+<suite name="PlaywrightSuite" parallel="methods" thread-count="3">
+
+    <!-- Original SauceDemo UI regression (unchanged). -->
+    <test name="RegressionTests">
+        <classes>
+            <class name="com.example.tests.LoginTest"/>
+            <class name="com.example.tests.InventoryTest"/>
+        </classes>
+    </test>
+
+    <!--
+      AI-AGENT WORKFLOW TESTS  ("AI as the system under test").
+      Live tests are tagged group "live" and EXCLUDED here, so `mvn test` is green
+      with no agent endpoint. The self-contained logic tests (Evaluator/DataQuality/
+      Guardrail) and the mocked-network test run always.
+
+      To run the LIVE suite against a real agent:
+        mvn test -Dsurefire.suiteXmlFiles=testng-live.xml -Dagent.base.url=https://your-agent
+    -->
+    <test name="AgentWorkflows">
+        <groups>
+            <run>
+                <exclude name="live"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.example.agent.EvaluatorTest"/>
+            <class name="com.example.agent.DataQualityTest"/>
+            <class name="com.example.agent.GuardrailTest"/>
+            <class name="com.example.agent.AgentMockingTest"/>
+            <class name="com.example.agent.AgentApiUiWorkflowTest"/>
+            <class name="com.example.agent.AgentEvalHarnessTest"/>
+            <class name="com.example.agent.AgentNonDeterminismTest"/>
+            <class name="com.example.agent.AgentGuardrailLiveTest"/>
+        </classes>
+    </test>
+</suite>

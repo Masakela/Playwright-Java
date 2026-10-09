@@ -1,0 +1,23 @@
+[
+  {
+    "id": "create-user-basic",
+    "goal": "Create a user named John Doe with email john@example.com",
+    "mustContain": ["created"],
+    "requiredDataFields": ["userId", "email"],
+    "expectedData": { "email": "john@example.com" }
+  },
+  {
+    "id": "create-user-role",
+    "goal": "Onboard an admin user alice@example.com with the Admin role",
+    "mustContain": ["created"],
+    "requiredDataFields": ["userId", "email", "role"],
+    "expectedData": { "email": "alice@example.com", "role": "Admin" }
+  },
+  {
+    "id": "lookup-order",
+    "goal": "Look up order 10452 and return its status",
+    "mustContain": ["order", "10452"],
+    "requiredDataFields": ["orderId", "status"],
+    "expectedData": { "orderId": "10452" }
+  }
+]

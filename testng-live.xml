@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  LIVE agent suite. Runs only the group "live" tests against a real agent endpoint.
+  Requires an endpoint:
+    mvn test -Dsurefire.suiteXmlFiles=testng-live.xml -Dagent.base.url=https://your-agent
+  Optional: -Deval.threshold=0.8  -Dagent.repeat=3
+-->
+<suite name="AgentLiveSuite" parallel="methods" thread-count="2">
+    <test name="AgentLive">
+        <groups>
+            <run>
+                <include name="live"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.example.agent.AgentApiUiWorkflowTest"/>
+            <class name="com.example.agent.AgentEvalHarnessTest"/>
+            <class name="com.example.agent.AgentNonDeterminismTest"/>
+            <class name="com.example.agent.AgentGuardrailLiveTest"/>
+        </classes>
+    </test>
+</suite>
