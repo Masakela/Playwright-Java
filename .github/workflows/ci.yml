@@ -1,9 +1,3 @@
-# >>> MOVE THIS FILE TO:  .github/workflows/ci.yml  <<<
-# GitHub protects the .github/workflows/ path, so remote tools cannot write there.
-# In this project folder run (PowerShell):
-#   New-Item -ItemType Directory -Force .github\workflows
-#   Move-Item github-actions-ci.yml .github\workflows\ci.yml
-
 name: CI
 
 on:
@@ -24,6 +18,11 @@ concurrency:
 jobs:
   java-tests:
     runs-on: ubuntu-latest
+    # Result import runs only when the Xray secret exists, so the job stays green
+    # until you configure it. (secrets can't be read directly in `if:`, so we flag
+    # it here and check the flag on the step.)
+    env:
+      XRAY_CONFIGURED: ${{ secrets.XRAY_CLIENT_ID != '' }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -50,6 +49,15 @@ jobs:
       - name: Stop reference agent
         if: always()
         run: kill "$(cat agent.pid)" 2>/dev/null || true
+      - name: Import results into Jira/Xray
+        if: ${{ always() && env.XRAY_CONFIGURED == 'true' }}
+        env:
+          XRAY_CLIENT_ID:     ${{ secrets.XRAY_CLIENT_ID }}
+          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+          XRAY_PROJECT_KEY:   QA          # <<< set your Jira project key
+          # XRAY_TEST_PLAN_KEY: QA-100    # optional: attach to a Test Plan
+        # Surefire writes one TEST-*.xml per class; the importer merges the directory.
+        run: node scripts/import-results.js xray --junit target/surefire-reports
       - name: Upload JUnit results
         if: always()
         uses: actions/upload-artifact@v4

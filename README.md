@@ -181,3 +181,43 @@ AI output is **non-deterministic** and a live agent may not be available in CI, 
 - **Isolation** - each test gets a fresh `BrowserContext`.
 - **Test data** - `logins.xlsx` (GoodLogin/BadLogin); agent JSON datasets under
   `src/test/resources/agent/`.
+
+## Patterns implemented (from the three Playwright reference diagrams)
+
+Framework Architecture, SDET Framework, and the Intermediate Cheatsheet — every
+technique maps to a concrete file in this project:
+
+| Pattern | Where |
+|---|---|
+| Page Object Model | `pages/BasePage`, `LoginPage`, `InventoryPage`, `agent/AgentConsolePage` |
+| Fixtures / lifecycle | `base/BaseTest`, `agent/AgentBaseTest` (per-thread Playwright) |
+| Hooks / setup–teardown | `@BeforeMethod` / `@AfterMethod` |
+| Separate test data | `logins.xlsx`; agent JSON under `src/test/resources/agent/` |
+| Data-driven / parameterized | `@DataProvider` + `utils/ExcelReader` (`LoginTest`) |
+| Multiple environments | `utils/Config` (`-Dagent.base.url`, `-Dbrowser`, `-Deval.threshold`) |
+| API + UI testing | `agent/AgentApiClient` (API) + `agent/AgentConsolePage` (UI) |
+| Network control / mocking | `AgentMockingTest` (`Route.FulfillOptions`) |
+| Web-first assertions / auto-wait | `assertThat(locator)` throughout |
+| Cross-browser | `-Dbrowser=chromium\|firefox\|webkit` per run; matrix via the CI job |
+| Parallel execution | `testng-ci.xml` `parallel="methods"` + per-thread Playwright |
+| Reporting / observability | Allure (`allure-testng`) + surefire; KPI dashboard |
+| CI/CD | `.github/workflows/ci.yml` → reports → GitHub Pages |
+
+> **Note on cross-browser:** Playwright's native `projects` matrix is a
+> TypeScript-config feature. The Java binding has no `projects` block, so this project
+> selects a browser per run with `-Dbrowser` and runs the three-engine matrix from a
+> CI job instead — the idiomatic Java approach.
+
+## Integrations — test management & defect tracking
+
+This skeleton is **integration-ready**: after a run it can push JUnit results into
+**Jira/Xray**, **Zephyr Scale**, or **TestRail**, and open **Jira defects** for
+failures — via a zero-dependency script, `scripts/import-results.js`. Full setup is
+in **INTEGRATIONS.md**; variables are listed in `.env.example`.
+
+- **Plug-and-play:** the CI import step is gated on the `XRAY_CLIENT_ID` secret, so it
+  is skipped and the build stays green until a tool is configured. No accounts or SDKs
+  are needed to use the rest of the project.
+- **Try it with no credentials:** `node scripts/import-results.js xray --junit target/surefire-reports --dry-run` prints exactly what would be sent.
+- **Status:** wired and demonstrable via dry-run; not yet run against a live
+  Jira / TestRail / Zephyr instance.
