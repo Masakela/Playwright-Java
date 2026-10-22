@@ -11,10 +11,14 @@
  *   --commit  <sha>  --branch <name>  --run-url <url>   run metadata (from CI env)
  *
  * Outputs (in --out):
- *   kpi-summary.json   machine-readable KPIs
+ *   kpi-summary.json   machine-readable KPIs (now includes per-test records + traceability)
  *   kpi-summary.md     Markdown summary (for the PR / GITHUB_STEP_SUMMARY)
  *   index.html         self-contained KPI dashboard (publish to GitHub Pages)
  *   history.json       rolling history (if --history given)
+ *
+ * Dashboard features: pass-rate donut, suite breakdown with per-test DRILL-DOWN,
+ * requirement TRACEABILITY (tests tagged "REQ-123 ..." grouped by requirement),
+ * agent quality gates, and a RUN HISTORY trend chart + table.
  */
 
 const fs = require('fs');
@@ -56,7 +60,18 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const pct = (n, d) => (d > 0 ? (100 * n) / d : 100);
 const r1 = (x) => Math.round(x * 10) / 10;
 
-// A normalized per-test record: { name, suite, lang, status: pass|fail|skip, flaky, durationMs }
+// Extract a requirement id from a test name/classname for traceability.
+// Matches "REQ-123", "REQ_123", "@REQ-123", "[REQ-123]" (case-insensitive).
+function reqOf() {
+  for (const s of arguments) {
+    if (!s) continue;
+    const m = String(s).match(/\bREQ[-_]?(\d+)\b/i);
+    if (m) return 'REQ-' + m[1];
+  }
+  return null;
+}
+
+// A normalized per-test record: { name, suite, lang, status: pass|fail|skip, flaky, durationMs, req }
 const tests = [];
 
 // ------------------------------------------------- parse Java JUnit XML -----
@@ -75,7 +90,7 @@ function parseJunit(dir) {
       if (/<failure\b|<error\b/.test(c)) status = 'fail';
       else if (/<skipped\b/.test(c)) status = 'skip';
       const suite = classname.includes('.agent.') ? 'Agent Workflows (Java)' : 'UI Regression (Java)';
-      tests.push({ name, suite, lang: 'java', status, flaky: false, durationMs: time, classname });
+      tests.push({ name, suite, lang: 'java', status, flaky: false, durationMs: time, classname, req: reqOf(name, classname) });
     }
   }
 }
@@ -106,6 +121,7 @@ function parsePlaywright(file) {
           status,
           flaky,
           durationMs,
+          req: reqOf(sp.title, title),
         });
       }
     }
@@ -138,6 +154,11 @@ const overall = tally(tests);
 const suiteNames = [...new Set(tests.map((t) => t.suite))].sort();
 const bySuite = suiteNames.map((s) => ({ suite: s, ...tally(tests.filter((t) => t.suite === s)) }));
 
+// by requirement (traceability) - only tests that carry a REQ tag
+const reqIds = [...new Set(tests.map((t) => t.req).filter(Boolean))]
+  .sort((a, b) => (parseInt(a.slice(4), 10) || 0) - (parseInt(b.slice(4), 10) || 0));
+const byReq = reqIds.map((id) => ({ req: id, ...tally(tests.filter((t) => t.req === id)) }));
+
 // agent quality gates (across both languages), matched by test name
 function gate(label, re) {
   const list = tests.filter((t) => re.test(t.name));
@@ -155,7 +176,12 @@ const summary = {
   meta: META,
   overall,
   bySuite,
+  traceability: byReq,
   agentQualityGates: gates,
+  tests: tests.map((t) => ({
+    name: t.name, suite: t.suite, lang: t.lang, status: t.status,
+    flaky: !!t.flaky, durationMs: Math.round(t.durationMs || 0), req: t.req || null,
+  })),
   generatedAt: new Date().toISOString(),
 };
 
@@ -200,6 +226,14 @@ const md = [
   '|---|---|---|---|---|---|',
   mdTable(bySuite.map((s) => [s.suite, s.total, s.passed, s.failed, s.skipped, s.passRate + '%'])),
   '',
+  ...(byReq.length ? [
+    '### Requirement traceability',
+    '',
+    '| Requirement | Tests | Pass | Fail | Skip | Pass rate |',
+    '|---|---|---|---|---|---|',
+    mdTable(byReq.map((r) => [r.req, r.total, r.passed, r.failed, r.skipped, r.passRate + '%'])),
+    '',
+  ] : []),
   '### Agent quality gates',
   '',
   '| Gate | Pass / Total | Pass rate |',
@@ -216,7 +250,6 @@ function statusColor(status) {
 // horizontal stacked bar for a suite row (passed/failed/skipped)
 function suiteBar(s) {
   const w = 460, total = Math.max(s.total, 1);
-  const seg = (n, color) => (n > 0 ? '<rect height="14" rx="3" ry="3" width="' + Math.max((n / total) * w - 2, 0) + '" fill="' + color + '"></rect>' : '');
   let x = 0; const parts = [];
   for (const [n, color] of [[s.passed, 'var(--good)'], [s.failed, 'var(--crit)'], [s.skipped, 'var(--warn)']]) {
     const segW = (n / total) * w;
@@ -238,7 +271,7 @@ function donut(rate) {
     <text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--muted)">pass rate</text>
   </svg>`;
 }
-// trend sparkline (pass rate over runs)
+// small trend sparkline (pass rate over runs) - shown next to the donut
 function sparkline(hist) {
   if (!hist || hist.length < 2) return '';
   const w = 320, h = 60, pad = 6;
@@ -252,21 +285,80 @@ function sparkline(hist) {
     <title>Latest ${last.passRate}%</title>
   </svg>`;
 }
+// larger run-history trend chart with gridlines and a 90% target line
+function trendChart(hist) {
+  if (!hist || hist.length < 2) return '';
+  const w = 680, h = 150, padL = 26, padR = 10, padT = 12, padB = 20, n = hist.length;
+  const xs = hist.map((_, i) => padL + (i * (w - padL - padR)) / (n - 1));
+  const y = (v) => padT + ((100 - v) / 100) * (h - padT - padB);
+  const pts = hist.map((d, i) => xs[i].toFixed(1) + ',' + y(d.passRate).toFixed(1)).join(' ');
+  const grid = [0, 50, 90, 100].map((v) =>
+    `<line x1="${padL}" x2="${w - padR}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--track)" stroke-width="1" ${v === 90 ? 'stroke-dasharray="4 3"' : ''}></line>
+     <text x="0" y="${(y(v) + 3).toFixed(1)}" font-size="9" fill="var(--muted)">${v}</text>`).join('');
+  const dots = hist.map((d, i) =>
+    `<circle cx="${xs[i].toFixed(1)}" cy="${y(d.passRate).toFixed(1)}" r="2.5" fill="var(--series1)"><title>${esc(d.commit || '')} — ${d.passRate}%</title></circle>`).join('');
+  return `<svg width="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Pass-rate trend over runs">
+    ${grid}<polyline fill="none" stroke="var(--series1)" stroke-width="2" points="${pts}"></polyline>${dots}</svg>`;
+}
+function historyTable(hist) {
+  const rows = hist.slice().reverse().map((d) => `<tr>
+    <td>${esc(new Date(d.date).toISOString().replace('T', ' ').slice(0, 16))} UTC</td>
+    <td><code>${esc(d.commit || '')}</code></td>
+    <td class="num"><strong>${d.passRate}%</strong></td>
+    <td class="num" style="color:var(--good)">${d.passed}</td>
+    <td class="num" style="color:var(--crit)">${d.failed}</td>
+    <td class="num" style="color:var(--warn)">${d.skipped}</td></tr>`).join('');
+  return `<table style="margin-top:12px">
+    <thead><tr><th>Run</th><th>Commit</th><th class="num">Rate</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Skip</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+// per-test list used by suite + requirement drill-downs
+function testList(list) {
+  if (!list.length) return '<div class="muted" style="padding:6px 0">No tests.</div>';
+  return list.map((t) => `<div class="trow">
+    <span class="sdot" style="background:${statusColor(t.status)}"></span>
+    <span class="tname">${esc(t.name)}</span>
+    ${t.req ? '<span class="reqtag">' + esc(t.req) + '</span>' : ''}
+    <span class="tdur">${r1((t.durationMs || 0) / 1000)}s</span></div>`).join('');
+}
 
 function tile(label, value, sub, color) {
   return `<div class="tile"><div class="tile-val" ${color ? 'style="color:' + color + '"' : ''}>${value}</div>
     <div class="tile-label">${label}</div>${sub ? '<div class="tile-sub">' + sub + '</div>' : ''}</div>`;
 }
 
-const suiteRows = bySuite.map((s) => `<tr>
-  <td>${esc(s.suite)}</td>
+// suite rows, each expandable to its tests
+const suiteRows = bySuite.map((s, i) => {
+  const id = 'su' + i;
+  const list = tests.filter((t) => t.suite === s.suite);
+  return `<tr class="clickable" data-toggle="${id}">
+  <td><span class="caret">&#9656;</span> ${esc(s.suite)}</td>
   <td class="num">${s.total}</td>
   <td>${suiteBar(s)}</td>
   <td class="num" style="color:var(--good)">${s.passed}</td>
   <td class="num" style="color:var(--crit)">${s.failed}</td>
   <td class="num" style="color:var(--warn)">${s.skipped}</td>
   <td class="num"><strong>${s.passRate}%</strong></td>
-</tr>`).join('');
+</tr>
+<tr class="detail" id="${id}"><td colspan="7"><div class="tests">${testList(list)}</div></td></tr>`;
+}).join('');
+
+// requirement traceability rows, each expandable to its tests
+const traceRows = byReq.map((r, i) => {
+  const id = 'rq' + i;
+  const ok = r.failed === 0;
+  const list = tests.filter((t) => t.req === r.req);
+  return `<tr class="clickable" data-toggle="${id}">
+  <td><span class="caret">&#9656;</span> <strong>${esc(r.req)}</strong></td>
+  <td class="num">${r.total}</td>
+  <td class="num" style="color:var(--good)">${r.passed}</td>
+  <td class="num" style="color:var(--crit)">${r.failed}</td>
+  <td class="num" style="color:var(--warn)">${r.skipped}</td>
+  <td class="num"><strong>${r.passRate}%</strong></td>
+  <td style="color:${ok ? 'var(--good)' : 'var(--crit)'}">${ok ? '&#10003; covered' : '&#10007; failing'}</td>
+</tr>
+<tr class="detail" id="${id}"><td colspan="7"><div class="tests">${testList(list)}</div></td></tr>`;
+}).join('');
 
 const gateCards = gates.map((g) => {
   const ok = g.failed === 0 && g.total > 0;
@@ -322,6 +414,22 @@ const html = `<!doctype html>
   .gate-label { font-size:.82rem; color:var(--muted); }
   .gate-badge { font-size:1.1rem; font-weight:700; margin:4px 0 2px; }
   .gate-sub { font-size:.75rem; color:var(--muted); }
+  .muted { color:var(--muted); }
+  /* drill-down */
+  tr.clickable { cursor:pointer; }
+  tr.clickable:hover td { background:color-mix(in srgb, var(--series1) 7%, transparent); }
+  .caret { display:inline-block; transition:transform .15s ease; color:var(--muted); font-size:.75rem; }
+  tr.open .caret { transform:rotate(90deg); }
+  tr.detail { display:none; }
+  tr.detail.open { display:table-row; }
+  tr.detail > td { background:color-mix(in srgb, var(--ink) 3%, transparent); padding:4px 14px 10px; }
+  .tests { display:flex; flex-direction:column; }
+  .trow { display:flex; align-items:center; gap:8px; padding:3px 0; font-size:.85rem; border-bottom:1px dotted var(--border); }
+  .trow:last-child { border-bottom:none; }
+  .sdot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .tname { color:var(--ink); }
+  .reqtag { font-size:.68rem; background:var(--track); color:var(--muted); padding:1px 6px; border-radius:999px; }
+  .tdur { margin-left:auto; color:var(--muted); font-variant-numeric:tabular-nums; }
   a { color:var(--series1); }
   footer { margin-top:32px; color:var(--muted); font-size:.78rem; }
 </style>
@@ -354,11 +462,11 @@ const html = `<!doctype html>
     </div>
   </div>
 
-  <h2>Results by suite</h2>
+  <h2>Results by suite <span class="muted" style="font-weight:400;font-size:.8rem">(click a row to see its tests)</span></h2>
   <div class="card">
     <table>
       <thead><tr><th>Suite</th><th class="num">Tests</th><th>Breakdown</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Skip</th><th class="num">Rate</th></tr></thead>
-      <tbody>${suiteRows || '<tr><td colspan="7" style="color:var(--muted)">No results found.</td></tr>'}</tbody>
+      <tbody>${suiteRows || '<tr><td colspan="7" class="muted">No results found.</td></tr>'}</tbody>
     </table>
     <div class="legend">
       <span><span class="dot" style="background:var(--good)"></span>Passed</span>
@@ -367,8 +475,23 @@ const html = `<!doctype html>
     </div>
   </div>
 
-  <h2>Agent quality gates <span style="font-weight:400;color:var(--muted);font-size:.85rem">(AI-as-system-under-test)</span></h2>
+  <h2>Requirement traceability <span class="muted" style="font-weight:400;font-size:.8rem">(requirement &rarr; tests &rarr; result)</span></h2>
+  <div class="card">
+    ${byReq.length ? `<table>
+      <thead><tr><th>Requirement</th><th class="num">Tests</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Skip</th><th class="num">Rate</th><th>Status</th></tr></thead>
+      <tbody>${traceRows}</tbody>
+    </table>` : `<p class="muted" style="margin:0">No requirement tags found. Name a test with a requirement id &mdash; e.g. <code>REQ-012 applies discount code</code> &mdash; and it appears here, each requirement linked to the tests that cover it and their latest result.</p>`}
+  </div>
+
+  <h2>Agent quality gates <span class="muted" style="font-weight:400;font-size:.85rem">(AI-as-system-under-test)</span></h2>
   <div class="gates">${gateCards}</div>
+
+  <h2>Run history <span class="muted" style="font-weight:400;font-size:.8rem">(last ${Math.max(history.length, 0)} runs)</span></h2>
+  <div class="card">
+    ${history.length >= 2
+      ? trendChart(history) + '<div class="muted" style="font-size:.72rem;margin-top:2px">pass rate per run; dashed line = 90% target</div>' + historyTable(history)
+      : '<p class="muted" style="margin:0">The trend appears once there are at least two runs. History is carried across CI runs via the <code>--history</code> file (cached between builds).</p>'}
+  </div>
 
   <footer>
     Generated by <code>scripts/kpi-report.js</code>. Full <a href="allure/index.html">Allure report</a> &middot;
@@ -377,13 +500,23 @@ const html = `<!doctype html>
   </footer>
 </div>
 <script type="application/json" id="kpi-data">${JSON.stringify(summary)}</script>
+<script>
+  document.querySelectorAll('tr.clickable[data-toggle]').forEach(function (tr) {
+    tr.addEventListener('click', function () {
+      var d = document.getElementById(tr.getAttribute('data-toggle'));
+      if (d) d.classList.toggle('open');
+      tr.classList.toggle('open');
+    });
+  });
+</script>
 </body>
 </html>`;
 fs.writeFileSync(path.join(OUT_DIR, 'index.html'), html);
 
 // console summary for CI logs
 console.log('KPIs: ' + overall.passed + '/' + overall.executed + ' passed (' + overall.passRate + '%), '
-  + overall.failed + ' failed, ' + overall.skipped + ' skipped, ' + overall.flaky + ' flaky.');
+  + overall.failed + ' failed, ' + overall.skipped + ' skipped, ' + overall.flaky + ' flaky.'
+  + (byReq.length ? ' ' + byReq.length + ' requirement(s) traced.' : ''));
 console.log('Wrote ' + path.join(OUT_DIR, 'index.html') + ', kpi-summary.json, kpi-summary.md');
 
 // non-zero exit if anything actually failed (optional gate for CI)
