@@ -39,7 +39,12 @@ public class LoginPage extends BasePage {
         username.fill(user);
         password.fill(pass);
         loginButton.click();
-        return new InventoryPage(page);
+        InventoryPage inv = new InventoryPage(page);
+        // Wait until the inventory grid is visible before returning, so downstream
+        // tests never run against a page that is still navigating (fixes the flaky
+        // instant-check race on login).
+        inv.container().waitFor();
+        return inv;
     }
 
     /** For negative tests: log in but stay on the login page to read the error. */
