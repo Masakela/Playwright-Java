@@ -221,3 +221,15 @@ in **INTEGRATIONS.md**; variables are listed in `.env.example`.
 - **Try it with no credentials:** `node scripts/import-results.js xray --junit target/surefire-reports --dry-run` prints exactly what would be sent.
 - **Status:** wired and demonstrable via dry-run; not yet run against a live
   Jira / TestRail / Zephyr instance.
+
+## Run it in your browser — zero install
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Masakela/Playwright-Java)
+
+No local setup required. Click **Code → Codespaces → Create codespace on main**
+(or the badge above). The container installs the JDK/Node/Maven and the Playwright
+browsers automatically; when it's ready, run:
+
+```bash
+mvn test
+```

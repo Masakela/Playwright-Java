@@ -1,0 +1,18 @@
+{
+  "name": "playwright-java-skeleton",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "jdkDistro": "tem",
+      "installMaven": "true"
+    },
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+  },
+  "postCreateCommand": "mvn -q -DskipTests compile exec:java -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args='install --with-deps chromium'",
+  "customizations": {
+    "vscode": {
+      "extensions": ["vscjava.vscode-java-pack", "redhat.vscode-xml", "ms-playwright.playwright"]
+    }
+  }
+}
