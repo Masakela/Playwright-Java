@@ -1,5 +1,11 @@
 # Playwright Agent Testing (Java) + UI Regression
 
+[![CI](https://github.com/Masakela/Playwright-Java/actions/workflows/ci.yml/badge.svg)](https://github.com/Masakela/Playwright-Java/actions/workflows/ci.yml)
+[![Live KPI dashboard](https://img.shields.io/badge/KPI%20dashboard-live-0ca30c)](https://masakela.github.io/Playwright-Java/)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Masakela/Playwright-Java)
+
+**Live KPI dashboard:** https://masakela.github.io/Playwright-Java/
+
 Two things live in this project:
 
 1. **SauceDemo UI regression** (the original) - Playwright for Java + TestNG + Maven,
