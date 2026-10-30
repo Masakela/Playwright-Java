@@ -71,6 +71,11 @@ jobs:
     needs: [java-tests]
     if: always()
     runs-on: ubuntu-latest
+    # The stakeholder email is sent only when the SMTP secret exists, so the job
+    # stays green until you add the mail secrets. (secrets can't be read directly
+    # in `if:`, so we flag it here and check the flag on the step.)
+    env:
+      MAIL_CONFIGURED: ${{ secrets.SMTP_HOST != '' }}
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -123,3 +128,21 @@ jobs:
         id: deploy
         if: github.ref == 'refs/heads/main'
         uses: actions/deploy-pages@v4
+      - name: Email QA status digest to stakeholders
+        if: ${{ github.ref == 'refs/heads/main' && env.MAIL_CONFIGURED == 'true' }}
+        env:
+          SMTP_HOST:           ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:           ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE:         ${{ secrets.SMTP_SECURE }}
+          SMTP_USER:           ${{ secrets.SMTP_USER }}
+          SMTP_PASS:           ${{ secrets.SMTP_PASS }}
+          MAIL_FROM:           ${{ secrets.MAIL_FROM }}
+          MAIL_TO:             ${{ secrets.MAIL_TO }}
+          MAIL_SUBJECT_PREFIX: '[QA] Playwright-Java'
+        run: |
+          npm install nodemailer --no-save --no-package-lock
+          if [ -d artifacts/java-surefire ]; then
+            node scripts/email-digest.js --junit artifacts/java-surefire --dashboard-url "${{ steps.deploy.outputs.page_url }}"
+          else
+            echo "No surefire results found; skipping stakeholder digest."
+          fi
