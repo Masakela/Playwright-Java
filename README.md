@@ -1,10 +1,11 @@
 # Playwright Agent Testing (Java) + UI Regression
 
 [![CI](https://github.com/Masakela/Playwright-Java/actions/workflows/ci.yml/badge.svg)](https://github.com/Masakela/Playwright-Java/actions/workflows/ci.yml)
-[![Live KPI dashboard](https://img.shields.io/badge/KPI%20dashboard-live-0ca30c)](https://masakela.github.io/Playwright-Java/)
+[![Live KPI dashboard](https://img.shields.io/badge/KPI%20dashboard-live-0ca30c)](https://masakela.github.io/Playwright-Java/kpis/)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Masakela/Playwright-Java)
 
-**Live KPI dashboard:** https://masakela.github.io/Playwright-Java/
+**Project website:** https://masakela.github.io/Playwright-Java/ ·
+**Live KPI dashboard:** https://masakela.github.io/Playwright-Java/kpis/
 
 Two things live in this project:
 
@@ -145,8 +146,8 @@ mvn test -Dsurefire.suiteXmlFiles=testng-live.xml \
    summary, uploads everything as a build artifact, and (on `main`) **deploys to
    GitHub Pages**.
 
-The published Pages site has the KPI dashboard at the root and the Allure report at
-`/allure/`. KPIs include pass rate, totals, failures, skips, flaky count, duration,
+The published Pages site has the project website (`website/`) at the root, the KPI
+dashboard at `/kpis/`, and the Allure report at `/kpis/allure/`. KPIs include pass rate, totals, failures, skips, flaky count, duration,
 a per-suite breakdown, and the four **agent quality gates** (eval task-success,
 guardrail refusals, non-determinism, data validation). See `kpis/README.md`.
 

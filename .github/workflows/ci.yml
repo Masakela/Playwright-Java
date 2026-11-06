@@ -96,13 +96,14 @@ jobs:
           restore-keys: kpi-history-
       - name: Assemble
         run: |
-          mkdir -p site kpi-history
+          mkdir -p site/kpis kpi-history
+          cp -r website/. site/
           cp -r artifacts/java-allure allure-results 2>/dev/null || mkdir -p allure-results
       - name: Build KPI dashboard
         run: >
           node scripts/kpi-report.js
           --junit artifacts/java-surefire
-          --out site
+          --out site/kpis
           --history kpi-history/history.json
           --branch "${{ github.ref_name }}"
           --commit "${{ github.sha }}"
@@ -111,9 +112,9 @@ jobs:
         continue-on-error: true
         run: |
           npm install -g allure-commandline
-          allure generate allure-results --clean -o site/allure
+          allure generate allure-results --clean -o site/kpis/allure
       - name: KPI summary -> job summary
-        run: cat site/kpi-summary.md >> "$GITHUB_STEP_SUMMARY"
+        run: cat site/kpis/kpi-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload combined report
         uses: actions/upload-artifact@v4
         with: { name: qa-report-site, path: site }
@@ -142,7 +143,7 @@ jobs:
         run: |
           npm install nodemailer --no-save --no-package-lock
           if [ -d artifacts/java-surefire ]; then
-            node scripts/email-digest.js --junit artifacts/java-surefire --dashboard-url "${{ steps.deploy.outputs.page_url }}"
+            node scripts/email-digest.js --junit artifacts/java-surefire --dashboard-url "${{ steps.deploy.outputs.page_url }}kpis/"
           else
             echo "No surefire results found; skipping stakeholder digest."
           fi

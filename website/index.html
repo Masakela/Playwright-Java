@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Playwright Agent Testing — Java</title>
+<meta name="description" content="A Playwright for Java framework that tests an AI agent as the system under test: functional workflows, guardrails, non-determinism, data quality and an eval harness — plus SauceDemo UI regression." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">▸</span> Playwright&nbsp;Agent&nbsp;Testing</a>
+    <nav aria-label="Sections">
+      <a href="#what">What</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#strategy">Strategy</a>
+      <a href="#playground">Playground</a>
+      <a href="#kpis">KPIs</a>
+      <a href="#start">Quick start</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ------------------------------------------------------------ hero -->
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Playwright for Java · TestNG · Maven · Allure</p>
+      <h1>Testing an AI agent<br/>like it's any other system under test.</h1>
+      <p class="lede">
+        A test framework that treats a non-deterministic AI agent as the
+        <strong>system under test</strong>. It checks functional workflows, guardrails, data quality and
+        task-success rate, and it also runs a classic SauceDemo UI regression suite. Everything runs
+        end-to-end on a laptop or in CI with <strong>no external dependencies</strong>.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="kpis/">Live KPI dashboard</a>
+        <a class="btn" href="https://github.com/Masakela/Playwright-Java">View source</a>
+        <a class="btn ghost" href="https://codespaces.new/Masakela/Playwright-Java">Open in Codespaces</a>
+      </div>
+      <ul class="hero-stats" id="hero-stats">
+        <li><span class="stat-val" data-kpi="total">54</span><span class="stat-label">automated tests</span></li>
+        <li><span class="stat-val" data-kpi="passRate">100%</span><span class="stat-label">pass rate, last run</span></li>
+        <li><span class="stat-val">4</span><span class="stat-label">agent quality gates</span></li>
+        <li><span class="stat-val">3</span><span class="stat-label">browser engines</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ what -->
+  <section id="what" class="section">
+    <div class="wrap">
+      <h2>Two suites, one framework</h2>
+      <div class="grid two">
+        <article class="card">
+          <p class="tag">AI agent workflows</p>
+          <h3>AI as the system under test</h3>
+          <p>
+            A small reference agent service (<code>agent-server/</code>, Node with zero dependencies)
+            is the system under test. Java tests call it over the API and drive its console in a real
+            browser. They assert <em>invariants</em> rather than exact text.
+          </p>
+          <ul class="ticks">
+            <li>Functional API&nbsp;+&nbsp;UI workflows</li>
+            <li>Guardrail refusals (prod deletes, secrets, moving funds)</li>
+            <li>Non-determinism: repeat runs, stable invariants</li>
+            <li>Eval harness with a task-success threshold</li>
+            <li>Data-quality checks on the agent's payload</li>
+          </ul>
+        </article>
+        <article class="card">
+          <p class="tag alt">UI regression</p>
+          <h3>SauceDemo, Page Object Model</h3>
+          <p>
+            The original suite. Data-driven login and inventory tests against SauceDemo, using
+            web-first assertions and auto-waiting. Each test gets its own isolated
+            <code>BrowserContext</code>.
+          </p>
+          <ul class="ticks">
+            <li><code>LoginPage</code>, <code>InventoryPage</code>, <code>BasePage</code></li>
+            <li>Excel-driven <code>@DataProvider</code> (<code>logins.xlsx</code>)</li>
+            <li>Chromium, Firefox and WebKit via <code>-Dbrowser</code></li>
+            <li>Parallel methods with per-thread Playwright</li>
+            <li>No explicit waits anywhere</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------- architecture -->
+  <section id="architecture" class="section alt-bg">
+    <div class="wrap">
+      <h2>How the pieces fit</h2>
+      <p class="section-lede">
+        Everything hangs off one endpoint, <code>POST /api/agent/run</code>. The Java client sends a
+        goal, and the agent returns a structured response that the evaluator, guardrails and data-quality
+        checks score. A real browser then confirms the outcome in the agent's console.
+      </p>
+      <div class="diagram" role="img" aria-label="Data flow: TestNG tests use AgentApiClient to POST to the reference agent, which returns an AgentResponse scored by Evaluator, Guardrails and DataQuality; Playwright opens the agent console for UI assertions; results flow to Allure and the KPI dashboard.">
+        <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrowhead"/>
+            </marker>
+          </defs>
+          <!-- tests -->
+          <g class="node">
+            <rect x="20" y="40" width="200" height="110" rx="10"/>
+            <text x="120" y="70" class="title">TestNG suites</text>
+            <text x="120" y="94">AgentApiClient</text>
+            <text x="120" y="114">AgentConsolePage</text>
+            <text x="120" y="134">LoginPage · InventoryPage</text>
+          </g>
+          <!-- agent -->
+          <g class="node accent">
+            <rect x="340" y="40" width="200" height="110" rx="10"/>
+            <text x="440" y="70" class="title">Reference agent</text>
+            <text x="440" y="94">server.js (zero-dep)</text>
+            <text x="440" y="114">/api/agent/run</text>
+            <text x="440" y="134">/agent · /health</text>
+          </g>
+          <!-- scoring -->
+          <g class="node">
+            <rect x="660" y="40" width="200" height="110" rx="10"/>
+            <text x="760" y="70" class="title">Scoring</text>
+            <text x="760" y="94">Evaluator</text>
+            <text x="760" y="114">Guardrails</text>
+            <text x="760" y="134">DataQuality</text>
+          </g>
+          <!-- browser -->
+          <g class="node">
+            <rect x="340" y="210" width="200" height="90" rx="10"/>
+            <text x="440" y="240" class="title">Playwright browser</text>
+            <text x="440" y="264">opens /agent console</text>
+            <text x="440" y="284">asserts created user</text>
+          </g>
+          <!-- reporting -->
+          <g class="node">
+            <rect x="660" y="210" width="200" height="90" rx="10"/>
+            <text x="760" y="240" class="title">Reporting</text>
+            <text x="760" y="264">Allure · JUnit</text>
+            <text x="760" y="284">KPI dashboard → Pages</text>
+          </g>
+          <!-- edges -->
+          <path class="edge" d="M220 80 H336" marker-end="url(#arr)"/>
+          <text x="278" y="72" class="edge-label">goal</text>
+          <path class="edge" d="M340 120 H224" marker-end="url(#arr)"/>
+          <text x="282" y="138" class="edge-label">AgentResponse</text>
+          <path class="edge" d="M540 95 H656" marker-end="url(#arr)"/>
+          <text x="598" y="87" class="edge-label">score</text>
+          <path class="edge" d="M120 150 V255 H336" marker-end="url(#arr)"/>
+          <text x="200" y="247" class="edge-label">UI check</text>
+          <path class="edge" d="M760 150 V206" marker-end="url(#arr)"/>
+          <text x="772" y="182" class="edge-label" text-anchor="start">results</text>
+          <path class="edge dashed" d="M440 150 V206" marker-end="url(#arr)"/>
+        </svg>
+      </div>
+
+      <div class="grid two contract">
+        <div>
+          <h3>Request</h3>
+<pre><code>POST /api/agent/run
+Content-Type: application/json
+
+{
+  "goal": "Create a user named John Doe
+           with email john@example.com",
+  "context": {}
+}</code></pre>
+        </div>
+        <div>
+          <h3>Response <span class="muted">(AgentResponse)</span></h3>
+<pre><code>{
+  "runId":   "run-…",        <span class="c">// never asserted</span>
+  "success": true,
+  "refused": false,
+  "message": "User created: john@example.com …",
+  "actions": [{ "tool": "create_user", "status": "ok" }],
+  "data":    { "userId": "u-0001",
+               "email":  "john@example.com",
+               "role":   "User" }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------- strategy -->
+  <section id="strategy" class="section">
+    <div class="wrap">
+      <h2>Offline and live, on purpose</h2>
+      <p class="section-lede">
+        Agent output is non-deterministic and a live agent isn't always available, so the suite is split
+        into two groups. Offline tests keep the default build green. Live tests are the regression signal
+        when the model or the prompt changes.
+      </p>
+      <div class="grid two">
+        <article class="card">
+          <p class="tag">Offline · always runs</p>
+          <table class="mini">
+            <tr><td><code>EvaluatorTest</code></td><td>scoring logic</td></tr>
+            <tr><td><code>DataQualityTest</code></td><td>payload validation rules</td></tr>
+            <tr><td><code>GuardrailTest</code></td><td>refusal classification</td></tr>
+            <tr><td><code>AgentMockingTest</code></td><td>UI against a mocked agent API (<code>route.fulfill</code>)</td></tr>
+          </table>
+        </article>
+        <article class="card">
+          <p class="tag alt">Live · group "live"</p>
+          <table class="mini">
+            <tr><td><code>AgentApiUiWorkflowTest</code></td><td>API creates a user, browser confirms it</td></tr>
+            <tr><td><code>AgentEvalHarnessTest</code></td><td>golden set ≥ <code>eval.threshold</code></td></tr>
+            <tr><td><code>AgentNonDeterminismTest</code></td><td>N repeats, invariants hold</td></tr>
+            <tr><td><code>AgentGuardrailLiveTest</code></td><td>unsafe goals are refused</td></tr>
+          </table>
+        </article>
+      </div>
+
+      <h3 class="sub">Patterns, and where to find them</h3>
+      <div class="table-scroll">
+        <table class="patterns">
+          <thead><tr><th>Pattern</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td>Page Object Model</td><td><code>BasePage</code>, <code>LoginPage</code>, <code>InventoryPage</code>, <code>AgentConsolePage</code></td></tr>
+            <tr><td>Fixtures and lifecycle</td><td><code>BaseTest</code>, <code>AgentBaseTest</code> (per-thread Playwright)</td></tr>
+            <tr><td>Data-driven tests</td><td><code>@DataProvider</code> + <code>ExcelReader</code>, JSON golden sets</td></tr>
+            <tr><td>Multiple environments</td><td><code>Config</code>: <code>-Dagent.base.url</code>, <code>-Dbrowser</code>, <code>-Deval.threshold</code></td></tr>
+            <tr><td>API + UI testing</td><td><code>AgentApiClient</code> + <code>AgentConsolePage</code></td></tr>
+            <tr><td>Network mocking</td><td><code>AgentMockingTest</code> (<code>Route.FulfillOptions</code>)</td></tr>
+            <tr><td>Parallel execution</td><td><code>testng-ci.xml</code> <code>parallel="methods"</code></td></tr>
+            <tr><td>Reporting</td><td>Allure, Surefire, KPI dashboard</td></tr>
+            <tr><td>CI/CD</td><td>GitHub Actions → reports → GitHub Pages</td></tr>
+            <tr><td>Test management</td><td><code>import-results.js</code>: Jira/Xray, Zephyr Scale, TestRail</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ playground -->
+  <section id="playground" class="section alt-bg">
+    <div class="wrap">
+      <h2>Try the evaluator</h2>
+      <p class="section-lede">
+        Pick a goal from the golden set. A simulated agent answers, and the same invariant checks the Java
+        <code>Evaluator</code> and <code>Guardrails</code> run are applied in your browser. The
+        <code>runId</code> changes on every run, which is why the tests never assert on it.
+      </p>
+      <div class="play">
+        <div class="play-controls">
+          <label for="goal">Goal</label>
+          <select id="goal"></select>
+          <label for="goal-text">Goal text <span class="muted">(editable)</span></label>
+          <textarea id="goal-text" rows="4"></textarea>
+          <button class="btn primary" id="run" type="button">Run agent</button>
+          <p class="hint" id="goal-hint"></p>
+        </div>
+        <div class="play-out">
+          <div class="pane">
+            <div class="pane-head">AgentResponse</div>
+            <pre id="resp"><code>Press "Run agent".</code></pre>
+          </div>
+          <div class="pane">
+            <div class="pane-head">Checks <span id="verdict" class="verdict"></span></div>
+            <ul id="checks" class="checks"><li class="muted">No run yet.</li></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ kpis -->
+  <section id="kpis" class="section">
+    <div class="wrap">
+      <h2>Latest CI run</h2>
+      <p class="section-lede" id="kpi-meta">Read from the KPI dashboard published by CI.</p>
+      <div class="tiles">
+        <div class="tile"><div class="tile-val" data-kpi="passRate">100%</div><div class="tile-label">Pass rate</div></div>
+        <div class="tile"><div class="tile-val" data-kpi="total">54</div><div class="tile-label">Tests</div></div>
+        <div class="tile"><div class="tile-val" data-kpi="failed">0</div><div class="tile-label">Failed</div></div>
+        <div class="tile"><div class="tile-val" data-kpi="flaky">0</div><div class="tile-label">Flaky</div></div>
+        <div class="tile"><div class="tile-val" data-kpi="duration">60.2s</div><div class="tile-label">Duration</div></div>
+      </div>
+      <h3 class="sub">Agent quality gates</h3>
+      <div class="gates" id="gates">
+        <div class="gate"><div class="gate-label">Eval harness (task-success)</div><div class="bar"><span style="width:100%"></span></div><div class="gate-sub">6 / 6 · 100%</div></div>
+        <div class="gate"><div class="gate-label">Guardrails (refusals)</div><div class="bar"><span style="width:100%"></span></div><div class="gate-sub">7 / 7 · 100%</div></div>
+        <div class="gate"><div class="gate-label">Non-determinism (invariants)</div><div class="bar"><span style="width:100%"></span></div><div class="gate-sub">2 / 2 · 100%</div></div>
+        <div class="gate"><div class="gate-label">Data validation</div><div class="bar"><span style="width:100%"></span></div><div class="gate-sub">1 / 1 · 100%</div></div>
+      </div>
+      <p class="more"><a href="kpis/">Full dashboard with trend</a> · <a href="kpis/allure/">Allure report</a></p>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ quick start -->
+  <section id="start" class="section alt-bg">
+    <div class="wrap">
+      <h2>Quick start</h2>
+      <p class="section-lede">Prerequisites: JDK 17+, Maven and Node 18+. No setup at all if you use Codespaces.</p>
+      <div class="steps">
+        <div class="step">
+          <span class="step-n">1</span>
+          <div>
+            <h3>Install browsers <span class="muted">(once)</span></h3>
+            <div class="code"><pre><code>mvn compile exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps"</code></pre><button class="copy" type="button">Copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">2</span>
+          <div>
+            <h3>UI regression + offline agent tests</h3>
+            <div class="code"><pre><code>mvn test</code></pre><button class="copy" type="button">Copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">3</span>
+          <div>
+            <h3>Full end-to-end, live agent included</h3>
+            <div class="code"><pre><code>./scripts/run-e2e.sh        # or .\scripts\run-e2e.ps1</code></pre><button class="copy" type="button">Copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">4</span>
+          <div>
+            <h3>Build the KPI dashboard locally</h3>
+            <div class="code"><pre><code>node scripts/kpi-report.js --junit target/surefire-reports --out kpis-out</code></pre><button class="copy" type="button">Copy</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>Playwright Agent Testing (Java edition) · MIT licensed</span>
+    <span>
+      <a href="https://github.com/Masakela/Playwright-Java">GitHub</a> ·
+      <a href="https://github.com/Masakela/Playwright-Java/blob/main/ARCHITECTURE.md">Architecture</a> ·
+      <a href="https://github.com/Masakela/Playwright-Java/blob/main/AI_AGENT_TESTING.md">Agent testing guide</a>
+    </span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
